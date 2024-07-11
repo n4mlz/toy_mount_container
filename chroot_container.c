@@ -1,49 +1,49 @@
 #define _GNU_SOURCE
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/mount.h>
-#include <sys/syscall.h>
-#include <sched.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #define NEW_ROOT "./chroot_fs"
 
 int main() {
-    // ディレクトリを作成
-    mkdir(NEW_ROOT, 0755);
-    
-    // Alpine Linux イメージをコピー
-    system("cp -r ./image/alpine/* " NEW_ROOT "/");
+  // ディレクトリを作成
+  mkdir(NEW_ROOT, 0755);
 
-    // unshare システムコールでプロセスを分離
-    if (unshare(CLONE_NEWNS) == -1) {
-        perror("unshare");
-        return 1;
-    }
+  // Alpine Linux イメージをコピー
+  system("cp -r ./image/alpine/* " NEW_ROOT "/");
 
-    // 名前空間を分けたプロセスで bind mount を行う前に shared を外す
-    mount("none", "/", NULL, MS_REC|MS_PRIVATE, NULL);
+  // unshare システムコールでプロセスを分離
+  if (unshare(CLONE_NEWNS) == -1) {
+    perror("unshare");
+    return 1;
+  }
 
-    // マウントポイントを作成
-    mount(NEW_ROOT, NEW_ROOT, NULL, MS_BIND, NULL);
-    mount("proc", NEW_ROOT "/proc", "proc", 0, NULL);
+  // 名前空間を分けたプロセスで bind mount を行う前に shared を外す
+  mount("none", "/", NULL, MS_REC | MS_PRIVATE, NULL);
 
-    // chroot で root を変更
-    if (chroot(NEW_ROOT) == -1) {
-        perror("chroot");
-        return 1;
-    }
+  // マウントポイントを作成
+  mount(NEW_ROOT, NEW_ROOT, NULL, MS_BIND, NULL);
+  mount("proc", NEW_ROOT "/proc", "proc", 0, NULL);
 
-    // カレントディレクトリを変更
-    if (chdir("/") == -1) {
-        perror("chdir");
-        return 1;
-    }
+  // chroot で root を変更
+  if (chroot(NEW_ROOT) == -1) {
+    perror("chroot");
+    return 1;
+  }
 
-    // シェルを起動
-    execlp("/bin/sh", "sh", NULL);
+  // カレントディレクトリを変更
+  if (chdir("/") == -1) {
+    perror("chdir");
+    return 1;
+  }
 
-    return 0;
+  // シェルを起動
+  execlp("/bin/sh", "sh", NULL);
+
+  return 0;
 }
